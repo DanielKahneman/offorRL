@@ -33,7 +33,15 @@ class EnvReplayBuffer(SimpleReplayBuffer):
         self.env = env
         self._ob_space = env.observation_space
         self._action_space = env.action_space
-        self.env_name = self.env.spec.id
+
+        # 兼容未通过 gym.register 创建的环境（可能没有 spec 或 spec.id）
+        spec = getattr(self.env, "spec", None)
+        if spec is not None and getattr(spec, "id", None) is not None:
+            self.env_name = spec.id
+        else:
+            unwrapped = getattr(self.env, "unwrapped", None)
+            spec2 = getattr(unwrapped, "spec", None) if unwrapped is not None else None
+            self.env_name = getattr(spec2, "id", "")
         self.online_finetune = online_finetune
 
         if env_info_sizes is None:

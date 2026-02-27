@@ -63,13 +63,19 @@ def main(args):
     if args.env.max_episode_steps > 0:
         eval_env._max_episode_steps = args.env.max_episode_steps
     eval_env.seed(seed)
-    eval_env.action_space.seed(seed)
+    # 出错点来自 main_off.py 中对 action_space 调种子的调用，
+    # 而当前 gym==0.10.5 的 Box 空间没有 seed() 方法
+    # 已经把这里改成带 hasattr 判断，如果 action_space 没有 seed，就跳过，不再报错
+    # 随机性仍然主要由 env.seed(seed) 和 np.random.seed、torch.manual_seed 控制，足够用于实验。
+    if hasattr(eval_env.action_space, "seed"):
+        eval_env.action_space.seed(seed)
 
     # env used for online finetune
     if args.rlalg.online_finetune:
         expl_env = make(args.env.name, None, None, normalize_env=args.trainer.obs_norm)
         expl_env.seed(seed)
-        expl_env.action_space.seed(seed)
+        if hasattr(expl_env.action_space, "seed"):
+            expl_env.action_space.seed(seed)
         if args.env.max_episode_steps > 0:
             expl_env._max_episode_steps = args.env.max_episode_steps
     else:

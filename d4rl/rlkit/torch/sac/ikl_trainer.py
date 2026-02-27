@@ -114,7 +114,12 @@ class IKLTrainer(TorchTrainer):
         self.u_clip = u_clip
 
     def bc_checkpoint(self):
-        bc_trainer_dir = os.path.join(self.log_dir, self.env.spec.id, 'BC')
+        # 某些未通过 gym.register 创建的环境可能没有 spec.id，这里做兼容处理
+        env_id = getattr(getattr(self.env, "spec", None), "id", None)
+        if env_id is None and hasattr(self.env, "unwrapped"):
+            env_id = getattr(getattr(self.env.unwrapped, "spec", None), "id", "unknown_env")
+
+        bc_trainer_dir = os.path.join(self.log_dir, env_id, 'BC')
         file_dir_list, num_files = collect_file_folder(bc_trainer_dir, self.bc_type+'_s_norm={}'.format(self.bc_norm))
         if num_files == 0:
             raise ValueError('No such type of BC policy')

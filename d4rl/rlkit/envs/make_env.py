@@ -35,9 +35,33 @@ def make(env_id=None, env_class=None, env_kwargs=None, normalize_env=True):
         assert normalize_env == False
         env = gym.make(env_id)
     elif env_id in D4RL_ENVS:
+        # D4RL 离线环境：直接使用 d4rl 的 Offline*Env 工厂函数构造，
+        # 避免依赖 gym 的注册表（在旧版 gym 上容易出现 UnregisteredEnv）。
         import d4rl
-        assert normalize_env == False, 'default unallowed normalize env for -v0 dataset, if must, modify the D4RL_ENVS list'
-        env = gym.make(env_id)
+        from d4rl import infos
+        from d4rl.gym_mujoco import gym_envs
+
+        assert normalize_env is False, 'default unallowed normalize env for -v0 dataset, if must, modify the D4RL_ENVS list'
+
+        # OfflineEnv 需要 dataset_url / ref_min_score / ref_max_score 等信息
+        kwargs = dict(
+            dataset_url=infos.DATASET_URLS[env_id],
+            ref_min_score=infos.REF_MIN_SCORE[env_id],
+            ref_max_score=infos.REF_MAX_SCORE[env_id],
+            deprecated=True,
+        )
+
+        if env_id.startswith("hopper-"):
+            env = gym_envs.get_hopper_env(**kwargs)
+        elif env_id.startswith("halfcheetah-"):
+            env = gym_envs.get_cheetah_env(**kwargs)
+        elif env_id.startswith("walker2d-"):
+            env = gym_envs.get_walker_env(**kwargs)
+        elif env_id.startswith("ant-"):
+            env = gym_envs.get_ant_env(**kwargs)
+        else:
+            # 回退到 gym.make，以防有未来新增的 D4RL 环境未在上面覆盖
+            env = gym.make(env_id)
     elif env_id:
         import d4rl
         env = gym.make(env_id)
