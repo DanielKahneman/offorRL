@@ -124,16 +124,21 @@ class EnvReplayBuffer(SimpleReplayBuffer):
         assert self._offline_size > 0, 'please load offline dataset for reward scale'
         returns, lengths = [], []
         ep_ret, ep_len = 0., 0
+        max_steps = getattr(self.env, '_max_episode_steps', None)
+        if max_steps is None and hasattr(self.env, 'env'):
+            max_steps = getattr(self.env.env, '_max_episode_steps', None)
+        if max_steps is None:
+            max_steps = 1000
         for r, d in zip(self._rewards[:self._offline_size].squeeze(), self._terminals[:self._offline_size].squeeze()):
             ep_ret += float(r)
             ep_len += 1
-            if d or ep_len == self.env._max_episode_steps - 1:
+            if d or ep_len == max_steps - 1:
                 returns.append(ep_ret)
                 lengths.append(ep_len)
                 ep_ret, ep_len = 0., 0
         lengths.append(ep_len)
         assert sum(lengths) == self._offline_size, 'miscount number of offline data'
-        reward_scale = self.env._max_episode_steps / (max(returns) - min(returns) + 1E-8)
+        reward_scale = max_steps / (max(returns) - min(returns) + 1E-8)
         print('========= reward scale by traj returns: {}'.format(reward_scale))
         return reward_scale
 

@@ -27,7 +27,7 @@ pip install -e.
 ```
 Then you can begin your offline RL experiments as follows (take 'IQL' as an example):
 ```bash
-python main_off.py --multirun trainer=iql env.name='hopper-medium-v2' 
+python main_off.py --multirun trainer=iql env.name='hopper-medium-v0' 
 ``` 
 
 

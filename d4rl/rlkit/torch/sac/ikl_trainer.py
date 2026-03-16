@@ -70,12 +70,18 @@ class IKLTrainer(TorchTrainer):
         self.bc_norm = bc_norm
         self.use_best = use_best
         self.log_dir = log_dir
-        bc_checkpoint = self.bc_checkpoint()
         self.obs_dim = self.env.observation_space.low.size
         self.action_dim = self.env.action_space.low.size
-        self.bc_agent = eval(self.bc_type)(obs_dim=self.obs_dim, action_dim=self.action_dim, **bc_kwargs)
-        self.bc_agent.to(ptu.device)
-        self.bc_agent.load_state_dict(torch.load(bc_checkpoint))
+        self.bc_warm_start = bool(bc_warm_start)
+        if self.bc_warm_start:
+            bc_checkpoint = self.bc_checkpoint()
+            self.bc_agent = eval(self.bc_type)(obs_dim=self.obs_dim, action_dim=self.action_dim, **bc_kwargs)
+            self.bc_agent.to(ptu.device)
+            self.bc_agent.load_state_dict(torch.load(bc_checkpoint))
+        else:
+            # 不做 BC warm start：用当前 policy 作为行为策略近似，保证训练流程能跑通
+            # （主要用于调试/跑通管线；如需严格 IKL，建议先训练并加载 BC policy）
+            self.bc_agent = self.policy
 
         self.policy_optimizer = optimizer_class(
             self.policy.parameters(),

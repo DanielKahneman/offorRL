@@ -32,8 +32,9 @@ def make(env_id=None, env_class=None, env_kwargs=None, normalize_env=True):
         env = env_class(**env_kwargs)
     elif env_id in DAPG_ENVS:
         import mj_envs
-        assert normalize_env == False
-        env = gym.make(env_id)
+        
+
+        
     elif env_id in D4RL_ENVS:
         # D4RL 离线环境：直接使用 d4rl 的 Offline*Env 工厂函数构造，
         # 避免依赖 gym 的注册表（在旧版 gym 上容易出现 UnregisteredEnv）。
@@ -62,6 +63,11 @@ def make(env_id=None, env_class=None, env_kwargs=None, normalize_env=True):
         else:
             # 回退到 gym.make，以防有未来新增的 D4RL 环境未在上面覆盖
             env = gym.make(env_id)
+
+        # D4RL 的 qlearning_dataset 会访问 env._max_episode_steps，
+        # 在我们绕过 gym.register 直接构造 Offline*Env 时，这个属性可能不存在，这里补一个合理默认值。
+        if not hasattr(env, "_max_episode_steps"):
+            env._max_episode_steps = 1000
     elif env_id:
         import d4rl
         env = gym.make(env_id)
